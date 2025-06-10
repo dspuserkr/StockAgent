@@ -59,3 +59,14 @@ if __name__ == "__main__":
     window.show()
     input("Press Enter to exit...")
     sys.exit(app.exec_())
+
+# 현재 파일 기준 상위 폴더 경로 구하기
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+exclusion_file_path = os.path.join(parent_dir, "관리종목, 담보대출불가능종목, ETF, 초저유동성종목, 증거금.txt")
+
+try:
+    with open(exclusion_file_path, 'r', encoding='utf-8') as f:
+        exclusion_keywords = [kw.strip() for kw in f.read().split(',') if kw.strip()]
+    print(f"D1: 제외 키워드 로드 완료: {len(exclusion_keywords)}개")
+except Exception as e:
+    print(f"D1: 제외 키워드 파일 로드 실패: {e}")
