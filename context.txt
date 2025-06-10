@@ -1,0 +1,25 @@
+이 프로그램의 목적은 kiwoom openAPI+를 이용해서 Crawller 프로그램으로는 특정기간의 모든 종목의 일봉과 분봉데이터를 수집하고, AiGo 프로그램으로는 자동매매를 실행하려고 해.
+
+최신 구조:
+1. Crawller 프로그램은 Crawller 폴더 내의 파일만 사용하며, common 폴더는 더 이상 사용하지 않는다.
+2. 모든 import는 Crawller 폴더(현재 폴더) 기준으로 한다. (예: from kiwoomAPI import KiwoomAPI)
+3. UI(메인윈도우)에서 크롤러 실행 버튼을 누르면 CrawllerWindow가 띄워지고, CrawllerWindow에서 일봉/분봉, 시작일, 종료일 등 위젯 값을 읽어 콘솔 프로그램(fromKiwoom.py)에 인자로 넘긴다.
+4. 데이터 수집, 저장, 이벤트 처리는 Crawller 폴더 내의 파일에서만 이루어진다.
+5. CSV 저장 경로는 D:/StockAgent/CSV로 고정되어 있다.
+6. UI와 데이터 수집 로직은 완전히 분리되어 있으며, UI는 단순히 파라미터를 받아 실행만 담당한다.
+7. Crawller 폴더 및 하위 모든 파일에 대해 읽기/쓰기/실행 등 모든 권한이 부여되어 있다.
+
+2개 폴더의 프로그램은 각각 따로 만들어진 프로그램이기 때문에, 같은 기능이나 같은 파일명이라도 내부의 함수나 변수명들이 달라.
+변수명들은 AiGo의 것들을 기준으로 바꾸었으면 좋겠어.
+KiwoomAPI.py같은 경우에는 2개 폴더의 파일이 다른데, 한개의 공통된 파일로 만들었으면 좋겠어.. 이파일을 현재 폴더에 놓거나 다른 common 폴더에 놓고, 2개의 프로그램이 같이 사용했으면 좋겠어.
+Kiwoom Login 이나 util에서 사용하는 함수들도 같이 사용할 수 있는 것들은 현재 폴더나 common 폴더에 놓을수 있으면 그렇게 해주었으면 해.
+
+중요사항 :
+common 폴더에 KiwoomAPI.py를 만들어. 그런데 AiGo와 Crawller 폴더에 있는 다른 KiwoomAPI.py를 합쳐서 공통으로 사용하기 위해서, 각 기능의 디버깅을 할때 해당 폴더의 필요기능들만 복사해서 변수명을 통일하고 통합화 작업을 해야해.
+Crawller폴더에서 fromKiwoom.py kiwoomAPI.py util.py는 수정하지 않을거야. 사용도 하지 않을거야. 이 파일의 코드들을 CrawllerMain.py와 common 폴더의 KiwoomAPI와 util함수로 옮길거야. common 폴더의 파일들은 AiGo의 코드들도 사용할 수 있도록 변수명이나 함수들을 통일시켜야 해.
+
+용어:
+KiwoomApplication 의 ui는 메인윈도우라고 부를께.
+Crawller 의 ui는 크롤러 윈도우라고 부를께.
+AiGo 의 ui는 고윈도우라고 부를께.
+
