@@ -108,8 +108,8 @@ def validate_and_prepare_data(run_mode, raw_stock_data_list, current_stock_code,
                     '현재가': ''.join(c for c in str(raw_item.get('현재가', '0')) if c.isdigit()),
                     '거래량': ''.join(c for c in str(raw_item.get('거래량', '0')) if c.isdigit()),
                     '거래대금': ''.join(c for c in str(raw_item.get('거래대금', '0')) if c.isdigit()),
-                    '수정주가구분': raw_item.get('수정주가구분', ''),
-                    '수정비율': raw_item.get('수정비율', ''),
+                    '이격도5': '0',
+                    '이격도20': '0',
                     '전일종가': raw_item.get('전일종가', ''),
                     'sma5': '0', 'sma10': '0', 'sma20': '0', 'sma60': '0', 'sma120': '0', 'sma240': '0',
                     'ema5': '0', 'ema10': '0', 'ema20': '0', 'ema60': '0', 'ema120': '0', 'ema240': '0',
@@ -330,6 +330,7 @@ if __name__ == "__main__":
                         df_to_save = pd.DataFrame(data_to_save_dicts, columns=DailyStockData.get_csv_headers())
                     else:
                         df_to_save = pd.DataFrame(data_to_save_dicts, columns=MinStockData.get_csv_headers())
+                    # 반드시 이격도5, 이격도20 컬럼이 포함되어 csv에 저장됨
                     df_to_save.to_csv(output_file_path, index=False, encoding='utf-8-sig')
                     print(f"D0: [{current_stock_name}] CSV 저장 완료: {output_file_path} ({len(processed_data_objects)}건)")
                 except Exception as e:
@@ -387,6 +388,7 @@ if __name__ == "__main__":
                         df_to_save = pd.DataFrame(data_to_save_dicts, columns=DailyStockData.get_csv_headers())
                     else:
                         df_to_save = pd.DataFrame(data_to_save_dicts, columns=MinStockData.get_csv_headers())
+                    # 반드시 이격도5, 이격도20 컬럼이 포함되어 csv에 저장됨
                     df_to_save.to_csv(output_file_path, index=False, encoding='utf-8-sig')
                     print(f"D0: [{current_stock_name}] CSV 저장 완료: {output_file_path} ({len(processed_data_objects)}건)")
                 except Exception as e:

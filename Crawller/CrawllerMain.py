@@ -37,6 +37,9 @@ def main():
             else:
                 kiwoom.request_minute_chart_data(code, tick_interval="1", start_date_for_filter=start_date, end_date_for_filter=end_date)
                 data_list = kiwoom.stock_data
+                for row in data_list:
+                    row["이격도5"] = 0
+                    row["이격도20"] = 0
                 util.save_chart_data_to_csv(start_date, end_date, "분봉", code, name, data_list, {})
             if idx % 20 == 0 or idx == total - 1:
                 print(f"[{idx+1}/{total}]")

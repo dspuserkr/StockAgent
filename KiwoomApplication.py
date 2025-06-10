@@ -11,6 +11,10 @@ from Crawller.CrawllerMain import CrawllerWindow
 # from common import util  # 필요 없으면 삭제
 import signal
 
+# TODO: 주식일봉차트요청 (opt10081) TR 요청 시 ErrCode가 비어있는 에러 발생. 이벤트 루프가 이미 존재하거나, 응답이 비정상적으로 돌아오는 경우가 있음. 
+#       - 이벤트 루프 중복 생성/종료 로직 점검 필요
+#       - TR 요청/응답 흐름 및 에러 발생 시점 상세 로그 추가 및 원인 분석 필요
+
 class KiwoomApplicationWindow(QMainWindow):
     def __init__(self):
         super().__init__()
