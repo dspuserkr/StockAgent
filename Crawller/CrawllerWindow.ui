@@ -31,7 +31,7 @@
       <rect>
        <x>10</x>
        <y>10</y>
-       <width>91</width>
+       <width>121</width>
        <height>51</height>
       </rect>
      </property>
@@ -50,19 +50,6 @@
        <string>분봉</string>
       </property>
      </item>
-    </widget>
-    <widget class="QPushButton" name="pushButton">
-     <property name="geometry">
-      <rect>
-       <x>120</x>
-       <y>10</y>
-       <width>171</width>
-       <height>51</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>PushButton</string>
-     </property>
     </widget>
     <widget class="QLabel" name="labelStart">
      <property name="geometry">
