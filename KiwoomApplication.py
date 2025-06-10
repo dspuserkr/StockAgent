@@ -15,6 +15,14 @@ import signal
 #       - 이벤트 루프 중복 생성/종료 로직 점검 필요
 #       - TR 요청/응답 흐름 및 에러 발생 시점 상세 로그 추가 및 원인 분석 필요
 
+def check_stop_flag():
+    stop_flag_path = os.path.join(os.path.dirname(__file__), "stop.flag")
+    if os.path.exists(stop_flag_path):
+        print("중지 플래그 감지, 안전하게 종료합니다.")
+        os.remove(stop_flag_path)
+        return True
+    return False
+
 class KiwoomApplicationWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -57,7 +65,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = KiwoomApplicationWindow()
     window.show()
-    input("Press Enter to exit...")
+    print("Made by Stewart Kim !!!")
     sys.exit(app.exec_())
 
 # 현재 파일 기준 상위 폴더 경로 구하기

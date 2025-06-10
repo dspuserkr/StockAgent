@@ -94,12 +94,12 @@ class CrawllerWindow(QMainWindow):
             "--end", end_date
         ]
         self.pTELog.appendPlainText(f"실행: {' '.join(cmd)}")
-        self.proc = subprocess.Popen(cmd)
+        self.proc = subprocess.Popen(cmd, creationflags=subprocess.CREATE_NEW_CONSOLE)
 
     def stop_crawlling(self):
         if self.proc and self.proc.poll() is None:
-            self.proc.terminate()
-            self.pTELog.appendPlainText("콘솔 데이터 수집 프로세스 중지 요청됨.")
+            self.proc.kill()
+            self.pTELog.appendPlainText("콘솔 데이터 수집 프로세스(cmd) 강제 종료됨.")
         else:
             self.pTELog.appendPlainText("진행 중인 콘솔 프로세스가 없습니다.")
 

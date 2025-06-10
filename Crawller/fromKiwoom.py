@@ -165,6 +165,14 @@ def validate_and_prepare_data(run_mode, raw_stock_data_list, current_stock_code,
         
         return processed_data_objects
 
+# stop.flag 체크 함수 추가
+def check_stop_flag():
+    stop_flag_path = os.path.join(os.path.dirname(__file__), "stop.flag")
+    if os.path.exists(stop_flag_path):
+        print("중지 플래그 감지, 안전하게 종료합니다.")
+        os.remove(stop_flag_path)
+        return True
+    return False
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -206,6 +214,11 @@ if __name__ == "__main__":
         print("D1: 키움증권 OpenAPI 로그인 실패! 프로그램을 종료합니다.")
         sys.exit(1)
     print("D1: 키움증권 OpenAPI 로그인 성공")
+
+    # 프로그램 시작 시 stop.flag 파일 삭제
+    stop_flag_path = os.path.join(os.path.dirname(__file__), "stop.flag")
+    if os.path.exists(stop_flag_path):
+        os.remove(stop_flag_path)
 
     # 2. 전체 종목 코드 가져오기 및 필터링 (최초 1회 수행)
     print("\nD1: 전체 종목 코드 수집 및 필터링 시작...")
@@ -259,149 +272,152 @@ if __name__ == "__main__":
         print("D1: 최종 처리 대상 종목이 없습니다. 프로그램을 종료합니다.")
         sys.exit(0)
     
-    # print("\n===== 최종 처리 대상 종목 상세 =====")
-    # for i, stock_obj in enumerate(target_stocks_for_processing):
-    #     print(f"  {i+1}. {stock_obj.name} ({stock_obj.code})")
-    # print("=================================")
-    # input("Enter를 눌러 전체 데이터 수집을 시작합니다...")
+    try:
+        # 4. 선택된 모드와 종목에 대해 데이터 요청, 처리 및 저장 (공통 로직)
+        for idx, stock_obj in enumerate(target_stocks_for_processing):
+            if check_stop_flag():
+                print("중지 플래그 감지, 프로그램을 즉시 종료합니다.")
+                app = QApplication.instance()
+                if app is not None:
+                    app.quit()
+                sys.exit(0)
+            current_stock_code = stock_obj.code
+            current_stock_name = stock_obj.name
+            print(f"\nD1: [{idx+1}/{len(target_stocks_for_processing)}] [{current_stock_name}({current_stock_code})] API 데이터 요청 중...")
 
-    # 4. 선택된 모드와 종목에 대해 데이터 요청, 처리 및 저장 (공통 로직)
-    for idx, stock_obj in enumerate(target_stocks_for_processing):
-        current_stock_code = stock_obj.code
-        current_stock_name = stock_obj.name
-        print(f"\nD1: [{idx+1}/{len(target_stocks_for_processing)}] [{current_stock_name}({current_stock_code})] API 데이터 요청 중...")
+            # kiwoom.stock_data는 API 호출 시마다 갱신되므로, 각 종목의 데이터를 별도로 저장해야 함
+            raw_data_from_api_single_stock = [] 
 
-        # kiwoom.stock_data는 API 호출 시마다 갱신되므로, 각 종목의 데이터를 별도로 저장해야 함
-        raw_data_from_api_single_stock = [] 
-
-        if DAY_MIN == 1: # 일봉
-            print(f"D1:  -> 일봉 데이터 요청 (기준일: {END_DATE}, 시작필터: {START_DATE})...")
-            kiwoom.request_daily_chart_data(
-                code=current_stock_code,
-                base_date=END_DATE,
-                modify_price_gubun="1", 
-                start_date_for_filter=START_DATE 
-            )
-            raw_data_from_api_single_stock = list(kiwoom.stock_data) # 복사본 저장
-            # 여기에 raw_data_from_api_single_stock 을 콘솔에 출력
-            # print(f"D0: [{current_stock_name}] 원본 데이터 {len(raw_data_from_api_single_stock)}건 수집 완료")
-            # for idx, item in enumerate(raw_data_from_api_single_stock[:5]):  # 처음 5개만 출력
-            #     print(f"D0:   {idx+1}. {item}")
-            # if len(raw_data_from_api_single_stock) > 5:
-            #     print(f"D0:   ... 외 {len(raw_data_from_api_single_stock)-5}건")
-            
-            # 여기에 input문으로 pause
-            # input(f"UID0: [{current_stock_name}] 원본 데이터 확인 후 Enter를 누르세요...")
-            
-            # 여기에 유효성 검사 호출, raw_data_from_api_single_stock 과 run_mode를 인자로 주고, 같은 클래스의 결과를 return 받을것
-            processed_data_objects = validate_and_prepare_data(
-                run_mode,
-                raw_data_from_api_single_stock,
-                current_stock_code,
-                current_stock_name,
-                START_DATE,
-                END_DATE
-            )
-            
-            # # 여기에 유효성 검사 결과를 콘솔에 출력
-            # print(f"D0: [{current_stock_name}] 유효성 검사 결과: {len(processed_data_objects)}건")
-            # for idx, item in enumerate(processed_data_objects):  # 모든 항목 출력
-            #     print(f"D0:   {idx+1}. {item}")
-            
-            # # 여기에 input문으로 pause
-            # input(f"UID0: [{current_stock_name}] 유효성 검사 결과 확인 후 Enter를 누르세요...")
-            
-            # 여기에 csv 파일 저장
-            if processed_data_objects:
-                data_to_save_dicts = [obj.to_dict() for obj in processed_data_objects]
-                safe_stock_code = util.sanitize_filename(current_stock_code)
-                safe_stock_name = util.sanitize_filename(current_stock_name)
-                chart_type = "일봉" if DAY_MIN == 1 else "분봉"
-                if DAY_MIN == 2:
-                    min_date = min(obj.체결시간[:8] for obj in processed_data_objects)
-                    max_date = max(obj.체결시간[:8] for obj in processed_data_objects)
-                    file_name = f"{min_date}_{max_date}_{chart_type}_{safe_stock_code}_{safe_stock_name}.csv"
-                else:
-                    file_name = f"{START_DATE}_{END_DATE}_{chart_type}_{safe_stock_code}_{safe_stock_name}.csv"
-                output_file_path = os.path.join(SAVE_DIR, file_name)
+            if DAY_MIN == 1: # 일봉
+                print(f"D1:  -> 일봉 데이터 요청 (기준일: {END_DATE}, 시작필터: {START_DATE})...")
+                kiwoom.request_daily_chart_data(
+                    code=current_stock_code,
+                    base_date=END_DATE,
+                    modify_price_gubun="1", 
+                    start_date_for_filter=START_DATE 
+                )
+                raw_data_from_api_single_stock = list(kiwoom.stock_data) # 복사본 저장
+                # 여기에 raw_data_from_api_single_stock 을 콘솔에 출력
+                # print(f"D0: [{current_stock_name}] 원본 데이터 {len(raw_data_from_api_single_stock)}건 수집 완료")
+                # for idx, item in enumerate(raw_data_from_api_single_stock[:5]):  # 처음 5개만 출력
+                #     print(f"D0:   {idx+1}. {item}")
+                # if len(raw_data_from_api_single_stock) > 5:
+                #     print(f"D0:   ... 외 {len(raw_data_from_api_single_stock)-5}건")
                 
-                try:
-                    if DAY_MIN == 1:
-                        df_to_save = pd.DataFrame(data_to_save_dicts, columns=DailyStockData.get_csv_headers())
+                # 여기에 input문으로 pause
+                # input(f"UID0: [{current_stock_name}] 원본 데이터 확인 후 Enter를 누르세요...")
+                
+                # 여기에 유효성 검사 호출, raw_data_from_api_single_stock 과 run_mode를 인자로 주고, 같은 클래스의 결과를 return 받을것
+                processed_data_objects = validate_and_prepare_data(
+                    run_mode,
+                    raw_data_from_api_single_stock,
+                    current_stock_code,
+                    current_stock_name,
+                    START_DATE,
+                    END_DATE
+                )
+                
+                # # 여기에 유효성 검사 결과를 콘솔에 출력
+                # print(f"D0: [{current_stock_name}] 유효성 검사 결과: {len(processed_data_objects)}건")
+                # for idx, item in enumerate(processed_data_objects):  # 모든 항목 출력
+                #     print(f"D0:   {idx+1}. {item}")
+                
+                # # 여기에 input문으로 pause
+                # input(f"UID0: [{current_stock_name}] 유효성 검사 결과 확인 후 Enter를 누르세요...")
+                
+                # 여기에 csv 파일 저장
+                if processed_data_objects:
+                    data_to_save_dicts = [obj.to_dict() for obj in processed_data_objects]
+                    safe_stock_code = util.sanitize_filename(current_stock_code)
+                    safe_stock_name = util.sanitize_filename(current_stock_name)
+                    chart_type = "일봉" if DAY_MIN == 1 else "분봉"
+                    if DAY_MIN == 2:
+                        min_date = min(obj.체결시간[:8] for obj in processed_data_objects)
+                        max_date = max(obj.체결시간[:8] for obj in processed_data_objects)
+                        file_name = f"{min_date}_{max_date}_{chart_type}_{safe_stock_code}_{safe_stock_name}.csv"
                     else:
-                        df_to_save = pd.DataFrame(data_to_save_dicts, columns=MinStockData.get_csv_headers())
-                    # 반드시 이격도5, 이격도20 컬럼이 포함되어 csv에 저장됨
-                    df_to_save.to_csv(output_file_path, index=False, encoding='utf-8-sig')
-                    print(f"D0: [{current_stock_name}] CSV 저장 완료: {output_file_path} ({len(processed_data_objects)}건)")
-                except Exception as e:
-                    print(f"에러: [{current_stock_name}] CSV 저장 실패: {e}")
+                        file_name = f"{START_DATE}_{END_DATE}_{chart_type}_{safe_stock_code}_{safe_stock_name}.csv"
+                    output_file_path = os.path.join(SAVE_DIR, file_name)
+                    
+                    try:
+                        if DAY_MIN == 1:
+                            df_to_save = pd.DataFrame(data_to_save_dicts, columns=DailyStockData.get_csv_headers())
+                        else:
+                            df_to_save = pd.DataFrame(data_to_save_dicts, columns=MinStockData.get_csv_headers())
+                        # 반드시 이격도5, 이격도20 컬럼이 포함되어 csv에 저장됨
+                        df_to_save.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+                        print(f"D0: [{current_stock_name}] CSV 저장 완료: {output_file_path} ({len(processed_data_objects)}건)")
+                    except Exception as e:
+                        print(f"에러: [{current_stock_name}] CSV 저장 실패: {e}")
+                
+                # # 여기에 input문으로 pause
+                # input(f"UID0: [{current_stock_name}] CSV 저장 완료 후 Enter를 누르세요...")
+            elif DAY_MIN == 2: # 분봉
+                print(f"D1:  -> 분봉 데이터 요청 (1분봉, 기준일: {END_DATE}, 시작필터: {START_DATE})...")
+                kiwoom.request_minute_chart_data(
+                    code=current_stock_code,
+                    tick_interval="1",
+                    modify_price_gubun="1",
+                    start_date_for_filter=START_DATE,
+                    end_date_for_filter=END_DATE
+                )
+                raw_data_from_api_single_stock = list(kiwoom.stock_data) # 복사본 저장
+                # # 원본 데이터 콘솔 출력
+                # print(f"D0: [{current_stock_name}] 원본 데이터 {len(raw_data_from_api_single_stock)}건 수집 완료")
+                # for idx, item in enumerate(raw_data_from_api_single_stock[:5]):  # 처음 5개만 출력
+                #     print(f"D0:   {idx+1}. {item}")
+                # if len(raw_data_from_api_single_stock) > 5:
+                #     print(f"D0:   ... 외 {len(raw_data_from_api_single_stock)-5}건")
+                # input(f"UID0: [{current_stock_name}] 원본 데이터 확인 후 Enter를 누르세요...")
+
+                # 유효성 검사 및 객체 변환
+                processed_data_objects = validate_and_prepare_data(
+                    run_mode,
+                    raw_data_from_api_single_stock,
+                    current_stock_code,
+                    current_stock_name,
+                    START_DATE,
+                    END_DATE
+                )
+                # print(f"D0: [{current_stock_name}] 유효성 검사 결과: {len(processed_data_objects)}건")
+                # for idx, item in enumerate(processed_data_objects):  # 모든 항목 출력
+                #     print(f"D0:   {idx+1}. {item}")
+                # input(f"UID0: [{current_stock_name}] 유효성 검사 결과 확인 후 Enter를 누르세요...")
+
+                # CSV 저장
+                if processed_data_objects:
+                    data_to_save_dicts = [obj.to_dict() for obj in processed_data_objects]
+                    safe_stock_code = util.sanitize_filename(current_stock_code)
+                    safe_stock_name = util.sanitize_filename(current_stock_name)
+                    chart_type = "일봉" if DAY_MIN == 1 else "분봉"
+                    if DAY_MIN == 2:
+                        min_date = min(obj.체결시간[:8] for obj in processed_data_objects)
+                        max_date = max(obj.체결시간[:8] for obj in processed_data_objects)
+                        file_name = f"{min_date}_{max_date}_{chart_type}_{safe_stock_code}_{safe_stock_name}.csv"
+                    else:
+                        file_name = f"{START_DATE}_{END_DATE}_{chart_type}_{safe_stock_code}_{safe_stock_name}.csv"
+                    output_file_path = os.path.join(SAVE_DIR, file_name)
+                    try:
+                        if DAY_MIN == 1:
+                            df_to_save = pd.DataFrame(data_to_save_dicts, columns=DailyStockData.get_csv_headers())
+                        else:
+                            df_to_save = pd.DataFrame(data_to_save_dicts, columns=MinStockData.get_csv_headers())
+                        # 반드시 이격도5, 이격도20 컬럼이 포함되어 csv에 저장됨
+                        df_to_save.to_csv(output_file_path, index=False, encoding='utf-8-sig')
+                        print(f"D0: [{current_stock_name}] CSV 저장 완료: {output_file_path} ({len(processed_data_objects)}건)")
+                    except Exception as e:
+                        print(f"에러: [{current_stock_name}] CSV 저장 실패: {e}")
+                # input(f"UID0: [{current_stock_name}] CSV 저장 완료 후 Enter를 누르세요...")
+            else:
+                print(f"경고: 알 수 없는 DAY_MIN 값 ({DAY_MIN})으로 [{current_stock_name}] 스킵")
+                continue
             
-            # # 여기에 input문으로 pause
-            # input(f"UID0: [{current_stock_name}] CSV 저장 완료 후 Enter를 누르세요...")
-        elif DAY_MIN == 2: # 분봉
-            print(f"D1:  -> 분봉 데이터 요청 (1분봉, 기준일: {END_DATE}, 시작필터: {START_DATE})...")
-            kiwoom.request_minute_chart_data(
-                code=current_stock_code,
-                tick_interval="1",
-                modify_price_gubun="1",
-                start_date_for_filter=START_DATE,
-                end_date_for_filter=END_DATE
-            )
-            raw_data_from_api_single_stock = list(kiwoom.stock_data) # 복사본 저장
-            # # 원본 데이터 콘솔 출력
-            # print(f"D0: [{current_stock_name}] 원본 데이터 {len(raw_data_from_api_single_stock)}건 수집 완료")
-            # for idx, item in enumerate(raw_data_from_api_single_stock[:5]):  # 처음 5개만 출력
-            #     print(f"D0:   {idx+1}. {item}")
-            # if len(raw_data_from_api_single_stock) > 5:
-            #     print(f"D0:   ... 외 {len(raw_data_from_api_single_stock)-5}건")
-            # input(f"UID0: [{current_stock_name}] 원본 데이터 확인 후 Enter를 누르세요...")
+            if idx < len(target_stocks_for_processing) - 1:
+                time.sleep(0.3) # 각 종목 API 요청 사이의 최소 대기 시간
+    except KeyboardInterrupt:
+        print("사용자에 의해 수집이 중단되었습니다. (Ctrl+C)")
 
-            # 유효성 검사 및 객체 변환
-            processed_data_objects = validate_and_prepare_data(
-                run_mode,
-                raw_data_from_api_single_stock,
-                current_stock_code,
-                current_stock_name,
-                START_DATE,
-                END_DATE
-            )
-            # print(f"D0: [{current_stock_name}] 유효성 검사 결과: {len(processed_data_objects)}건")
-            # for idx, item in enumerate(processed_data_objects):  # 모든 항목 출력
-            #     print(f"D0:   {idx+1}. {item}")
-            # input(f"UID0: [{current_stock_name}] 유효성 검사 결과 확인 후 Enter를 누르세요...")
-
-            # CSV 저장
-            if processed_data_objects:
-                data_to_save_dicts = [obj.to_dict() for obj in processed_data_objects]
-                safe_stock_code = util.sanitize_filename(current_stock_code)
-                safe_stock_name = util.sanitize_filename(current_stock_name)
-                chart_type = "일봉" if DAY_MIN == 1 else "분봉"
-                if DAY_MIN == 2:
-                    min_date = min(obj.체결시간[:8] for obj in processed_data_objects)
-                    max_date = max(obj.체결시간[:8] for obj in processed_data_objects)
-                    file_name = f"{min_date}_{max_date}_{chart_type}_{safe_stock_code}_{safe_stock_name}.csv"
-                else:
-                    file_name = f"{START_DATE}_{END_DATE}_{chart_type}_{safe_stock_code}_{safe_stock_name}.csv"
-                output_file_path = os.path.join(SAVE_DIR, file_name)
-                try:
-                    if DAY_MIN == 1:
-                        df_to_save = pd.DataFrame(data_to_save_dicts, columns=DailyStockData.get_csv_headers())
-                    else:
-                        df_to_save = pd.DataFrame(data_to_save_dicts, columns=MinStockData.get_csv_headers())
-                    # 반드시 이격도5, 이격도20 컬럼이 포함되어 csv에 저장됨
-                    df_to_save.to_csv(output_file_path, index=False, encoding='utf-8-sig')
-                    print(f"D0: [{current_stock_name}] CSV 저장 완료: {output_file_path} ({len(processed_data_objects)}건)")
-                except Exception as e:
-                    print(f"에러: [{current_stock_name}] CSV 저장 실패: {e}")
-            # input(f"UID0: [{current_stock_name}] CSV 저장 완료 후 Enter를 누르세요...")
-        else:
-            print(f"경고: 알 수 없는 DAY_MIN 값 ({DAY_MIN})으로 [{current_stock_name}] 스킵")
-            continue
-        
-        if idx < len(target_stocks_for_processing) - 1:
-            time.sleep(0.3) # 각 종목 API 요청 사이의 최소 대기 시간
-
-    print(f"\n===== 전체 원본 데이터 수집 완료 ({len(collected_raw_data_for_all_stocks)}개 종목) =====")
+    print(f"\n===== 전체 원본 데이터 수집 완료 =====")
     input("Enter를 눌러 데이터 처리 및 저장을 시작합니다...") # 확인 메시지 추가
 
     # 5. 데이터 유효성 검사, DailyStockData 객체 변환 및 CSV 저장
