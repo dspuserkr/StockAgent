@@ -67,6 +67,13 @@ class CrawllerWindow(QMainWindow):
         self.set_start_date_default("일봉")
         self.cBoxSelectDayMin.currentTextChanged.connect(self.set_start_date_default)
 
+        # --- 버튼 텍스트 동적 변경 기능 추가 ---
+        self.update_btn_text()  # 최초 텍스트 설정
+        self.dateEditStart.dateChanged.connect(self.update_btn_text)
+        self.dateEditEnd.dateChanged.connect(self.update_btn_text)
+        self.cBoxSelectDayMin.currentTextChanged.connect(self.update_btn_text)
+        # --------------------------------------
+
     def set_start_date_default(self, day_min):
         today = QDate.currentDate()
         if day_min == "일봉":
@@ -95,6 +102,14 @@ class CrawllerWindow(QMainWindow):
             self.pTELog.appendPlainText("콘솔 데이터 수집 프로세스 중지 요청됨.")
         else:
             self.pTELog.appendPlainText("진행 중인 콘솔 프로세스가 없습니다.")
+
+    # --- 아래 함수 추가 ---
+    def update_btn_text(self):
+        start_date = self.dateEditStart.date().toString("yyyyMMdd")
+        end_date = self.dateEditEnd.date().toString("yyyyMMdd")
+        day_min = self.cBoxSelectDayMin.currentText()
+        self.btnStartCrawlling.setText(f"{start_date}~{end_date} {day_min} 데이터 수집")
+    # ---------------------
 
 if __name__ == "__main__":
     main() 
